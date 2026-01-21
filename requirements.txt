@@ -1,0 +1,24 @@
+# Core Dependencies
+anthropic>=0.18.0
+chromadb>=0.4.24
+sentence-transformers>=2.3.0
+
+# UI Framework
+PyQt6>=6.6.0
+
+# Security & Encryption
+cryptography>=41.0.0
+
+# Document Processing
+PyPDF2>=3.0.0
+python-docx>=1.1.0
+python-pptx>=0.6.23
+openpyxl>=3.1.0
+
+# Text Processing
+markdown>=3.5.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Utilities
+python-dotenv>=1.0.0

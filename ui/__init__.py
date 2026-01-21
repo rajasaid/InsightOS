@@ -1,0 +1,9 @@
+"""
+ui/__init__.py
+UI package initialization
+"""
+
+from ui.main_window import MainWindow
+
+
+__all__ = ['MainWindow']
