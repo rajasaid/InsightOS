@@ -22,7 +22,7 @@ from ui.styles.fonts import (
     get_display_font, get_text_font,
     SIZE_HEADLINE, SIZE_BODY, WEIGHT_BOLD
 )
-from security.config_manager import ConfigManager
+from security.config_manager import ConfigManager, get_config_manager
 from utils.logger import get_logger
 from mcp_servers import get_mcp_config
 from pathlib import Path
@@ -44,7 +44,7 @@ class SettingsDialog(QDialog):
         self.setMinimumSize(650, 550)
         self.setModal(True)
         
-        self.config_manager = ConfigManager()
+        self.config_manager = get_config_manager()
 
         self._setup_ui()
         self._load_settings()
@@ -68,10 +68,7 @@ class SettingsDialog(QDialog):
                 
             }
             QTabBar::tab {
-                max-width: 100%;
-                size: auto;
-                background-size: cover;
-                                
+                min-width: 100px;
             }
         """)
         #self.tabs.tabBar().setExpanding(True)
@@ -208,7 +205,11 @@ class SettingsDialog(QDialog):
         try:
             config = self.config_manager.get_config()
             config.update(settings)
-            self.config_manager.save_config(config)
+            
+            ok = self.config_manager.save_config(config)
+            if not ok:
+                QMessageBox.critical(self, "Save Error", "Failed to save settings (see logs).")
+                return
             
             # Apply MCP settings (from AdvancedTab)
             self.advanced_tab.apply_mcp_settings()
@@ -622,11 +623,12 @@ class APIKeyTab(QWidget):
     def load_settings(self, config: dict):
         """Load settings from config"""
         # Check if API key is configured
-        from security.config_manager import ConfigManager
-        config_manager = ConfigManager()
+        from security.config_manager import get_config_manager
+        config_manager = get_config_manager()
         self._api_key_configured = config_manager.has_api_key()
         self._update_status()
     
+        
     def _update_status(self):
         """Update status label"""
         if self._api_key_configured:
@@ -1101,7 +1103,7 @@ class AdvancedTab(QWidget):
                 "Cache Cleared",
                 "Vector database has been cleared. Please re-index your directories."
             )
-    
+
     def load_settings(self, config: dict):
         """Load settings from config"""
         # Chunking

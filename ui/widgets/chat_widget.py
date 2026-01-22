@@ -226,19 +226,36 @@ class ChatWidget(QWidget):
         self.input_field.installEventFilter(self)
     
     def _create_loading_widget(self):
-        """Create loading indicator widget"""
+        """Create loading indicator widget that shows the user's query"""
         loading_widget = QWidget()
-        loading_layout = QHBoxLayout(loading_widget)
-        loading_layout.setContentsMargins(16, 8, 16, 8)
+        loading_layout = QVBoxLayout(loading_widget)
+        loading_layout.setContentsMargins(16, 12, 16, 12)
+        loading_layout.setSpacing(8)
+        
+        from ui.styles.colors import TEXT_SECONDARY, BORDER_COLOR, BACKGROUND_SECONDARY
+        
+        # User query display (shown while processing)
+        self.query_display = QLabel()
+        self.query_display.setWordWrap(True)
+        self.query_display.setFont(QFont("SF Pro Text", 13))
+        self.query_display.setStyleSheet(f"""
+            color: {TEXT_SECONDARY};
+            background: {BACKGROUND_SECONDARY};
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid {BORDER_COLOR};
+        """)
+        self.query_display.setVisible(False)
+        loading_layout.addWidget(self.query_display)
         
         # Typing animation with dots
+        status_layout = QHBoxLayout()
         self.loading_label = QLabel("Thinking")
         self.loading_label.setFont(QFont("SF Pro Text", 13))
-        from ui.styles.colors import TEXT_SECONDARY
         self.loading_label.setStyleSheet(f"color: {TEXT_SECONDARY};")
-        loading_layout.addWidget(self.loading_label)
-        
-        loading_layout.addStretch()
+        status_layout.addWidget(self.loading_label)
+        status_layout.addStretch()
+        loading_layout.addLayout(status_layout)
         
         # Animate dots
         self.loading_timer = QTimer()
@@ -348,14 +365,14 @@ class ChatWidget(QWidget):
     
     def eventFilter(self, obj, event):
         """Handle keyboard events for shortcuts"""
-        from PyQt6.QtCore import QEvent
-        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import QEvent, Qt
         
         if obj == self.input_field and event.type() == QEvent.Type.KeyPress:
-            key_event = event
-            # Cmd+Enter to send (Cmd is Qt.Key.Key_Meta on macOS)
-            if (key_event.key() == Qt.Key.Key_Return or key_event.key() == Qt.Key.Key_Enter) and \
-               (key_event.modifiers() & Qt.KeyboardModifier.MetaModifier):
+            # On macOS, ControlModifier IS Cmd key
+            # On Windows/Linux, ControlModifier IS Ctrl key
+            # Qt handles the platform difference for you!
+            if (event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and 
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier):
                 self._on_send_clicked()
                 return True
         
@@ -404,13 +421,14 @@ class ChatWidget(QWidget):
         # Clear input
         self.input_field.clear()
         self.input_field.setFixedHeight(44)  # Reset height
-        
+        self.input_field.clearFocus()
+
         # Disable input during processing
         self.input_field.setEnabled(False)
         self.send_btn.setEnabled(False)
         
-        # Show loading
-        self.set_loading(True)
+        # Show loading with user's query
+        self.set_loading(True, query=text)
         
         # Process in background thread
         self._process_message_async(text)
@@ -533,16 +551,31 @@ class ChatWidget(QWidget):
         
         logger.error(f"Error message displayed: {error_message}")
     
-    def set_loading(self, is_loading: bool):
-        """Show/hide loading indicator"""
+    def set_loading(self, is_loading: bool, query: str = ""):
+        """
+        Show/hide loading indicator with optional user query
+        
+        Args:
+            is_loading: Whether to show loading state
+            query: User's query to display (optional)
+        """
         self._is_loading = is_loading
         
         if is_loading:
+            # Show user's query if provided
+            if query and query.strip():
+                truncated_query = query[:200] + "..." if len(query) > 200 else query
+                self.query_display.setText(f"💬 {truncated_query}")
+                self.query_display.setVisible(True)
+            else:
+                self.query_display.setVisible(False)
+            
             self.loading_widget.setVisible(True)
             self.loading_timer.start(500)  # Update every 500ms
             self._scroll_to_bottom()
         else:
             self.loading_widget.setVisible(False)
+            self.query_display.setVisible(False)
             self.loading_timer.stop()
             self.loading_dots = 0
     

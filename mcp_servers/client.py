@@ -12,6 +12,7 @@ from pathlib import Path
 import uuid
 
 from mcp_servers import get_mcp_config
+from security.config_manager import get_config_manager
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -114,17 +115,24 @@ class MCPClient:
         Returns:
             Subprocess instance
         """
-        output_dir = self.config.get_output_dir()
+        output_dir = self.config.get_output_dir().resolve()
         
+        # Set allowed directories via environment variable
+        import os
+        env = os.environ.copy()
+        env['ALLOWED_DIRECTORIES'] = str(output_dir)  # ← Official MCP server uses this
+
         # Use official @modelcontextprotocol/server-filesystem
         # npx -y @modelcontextprotocol/server-filesystem <output_dir>
         process = subprocess.Popen(
-            ["npx", "-y", "@modelcontextprotocol/server-filesystem", str(output_dir)],
+            ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1
+            bufsize=1,
+            cwd=str(output_dir), 
+            env=env
         )
         
         logger.info(f"MCP filesystem server started via npx (output_dir: {output_dir})")
@@ -165,8 +173,7 @@ class MCPClient:
             Subprocess instance or None if not available
         """
         # Check if Brave Search API key is configured
-        from security.config_manager import ConfigManager
-        config_manager = ConfigManager()
+        config_manager = get_config_manager()
         config = config_manager.get_config()
         
         brave_api_key = config.get('brave_search_api_key')

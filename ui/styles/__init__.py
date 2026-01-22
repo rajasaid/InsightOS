@@ -7,6 +7,7 @@ UI styles package initialization
 from ui.styles.colors import (
     BACKGROUND,
     SIDEBAR_BACKGROUND,
+    BACKGROUND_SECONDARY,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
     ACCENT_COLOR,

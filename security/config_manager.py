@@ -3,6 +3,7 @@ security/config_manager.py
 Configuration management with encrypted API key storage
 """
 
+from copy import copy
 import json
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -460,6 +461,11 @@ class ConfigManager:
             logger.error(f"Failed to export configuration: {e}")
             return False
     
+    import copy
+    def reload(self) -> Dict[str, Any]:
+        self._config = self._load_or_create_config()
+        return copy.deepcopy(self._config)
+
     def import_config(self, import_path: Path, merge: bool = True) -> bool:
         """
         Import configuration from file
