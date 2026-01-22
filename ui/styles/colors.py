@@ -10,6 +10,7 @@ macOS-native color scheme for InsightOS
 # Main backgrounds
 BACKGROUND = "#FFFFFF"              # Pure white for main content area
 SIDEBAR_BACKGROUND = "#F5F5F7"      # Light gray for sidebar (macOS style)
+BACKGROUND_SECONDARY = "#F5F5F7"    # Light gray background for secondary elements
 
 # Text colors
 TEXT_PRIMARY = "#000000"            # Black for primary text

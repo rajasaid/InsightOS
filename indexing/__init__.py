@@ -12,6 +12,7 @@ from indexing.file_readers import (
     FileReadError
 )
 from indexing.chunker import chunk_text, TextChunk, get_chunk_statistics
+from indexing.normalizer import get_default_normalizer, get_aggressive_normalizer, Normalizer
 
 __all__ = [
     # Main classes
@@ -29,4 +30,8 @@ __all__ = [
     'chunk_text',
     'TextChunk',
     'get_chunk_statistics',
+    # Normalizer
+    'get_default_normalizer',
+    'get_aggressive_normalizer',
+    'Normalizer',
 ]

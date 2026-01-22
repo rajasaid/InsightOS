@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Any
 from core.tool_executor import ToolExecutor
 from mcp_servers import get_mcp_config
 from mcp_servers.client import get_mcp_client
-from agent.prompts import build_system_prompt
+from security.config_manager import get_config_manager
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -34,7 +34,7 @@ class ClaudeClient:
         # Get ConfigManager
         if config_manager is None:
             from security.config_manager import ConfigManager
-            config_manager = ConfigManager()
+            config_manager = get_config_manager()
         
         self.config_manager = config_manager
         
@@ -76,15 +76,27 @@ class ClaudeClient:
         """Start enabled MCP server subprocesses"""
         enabled_servers = self.mcp_config.get_enabled_servers()
         
+        started_count = 0
         for server_name in enabled_servers.keys():
             try:
                 success = self.mcp_client.start_server(server_name)
                 if success:
                     logger.info(f"  ✓ MCP server started: {server_name}")
+                    started_count += 1
                 else:
-                    logger.warning(f"  ✗ Failed to start MCP server: {server_name}")
+                    # Only warn for optional servers (memory, brave-search)
+                    if server_name in ["memory", "brave-search"]:
+                        logger.info(f"  ○ MCP server {server_name} not available (optional)")
+                    else:
+                        # Filesystem is critical
+                        logger.warning(f"  ✗ Failed to start MCP server: {server_name}")
             except Exception as e:
                 logger.error(f"  ✗ Error starting {server_name}: {e}")
+        
+        if started_count == 0:
+            logger.warning("No MCP servers started successfully")
+        else:
+            logger.info(f"Started {started_count}/{len(enabled_servers)} MCP servers")
     
     def get_tools(self) -> List[Dict]:
         """
@@ -129,7 +141,7 @@ class ClaudeClient:
     
     def get_system_prompt(self, rag_context: Optional[str] = None) -> str:
         """
-        Build system prompt with RAG context
+        Build system prompt with RAG context (using core/prompt_templates.py)
         
         Args:
             rag_context: Retrieved context from ChromaDB (optional)
@@ -137,11 +149,85 @@ class ClaudeClient:
         Returns:
             Complete system prompt string
         """
-        return build_system_prompt(
-            mcp_config=self.mcp_config,
-            rag_context=rag_context,
-            tools_enabled=self.agentic_mode_enabled
-        )
+        from core.prompt_templates import get_system_prompt as get_base_prompt
+        
+        # Get base system prompt (prevents hallucination)
+        system_prompt = get_base_prompt(use_tools=self.agentic_mode_enabled)
+        
+        # Add RAG context if provided
+        if rag_context:
+            system_prompt += f"""
+
+====================
+RETRIEVED CONTEXT (ALREADY SEARCHED - DO NOT SEARCH AGAIN)
+====================
+
+I have already searched your indexed documents and retrieved the most relevant information.
+Here is what I found:
+
+<context>
+{rag_context}
+</context>
+
+====================
+CRITICAL INSTRUCTIONS
+====================
+
+1. The context above is the RESULT of the search - it has already been performed
+2. Do NOT output <search> tags or mention that you will search
+3. Do NOT say "I'll search" or "Let me search" - the search is already done
+4. Base your answer ONLY on the context above
+5. If the context doesn't contain the answer, say: "I don't have that information in your indexed documents"
+6. Do NOT use general knowledge or make assumptions
+7. Always cite specific documents when providing information
+8. If you're unsure, state what information is missing from the context
+
+**CRITICAL - FILE WRITING:**
+When using write_file tool:
+- ONLY use RELATIVE paths like "summaries/filename.txt"
+- DO NOT use absolute paths like "/Users/.../filename.txt"
+- The file will automatically be saved to the Generated directory
+- Example: Use "summaries/chosen_file_name.csv" NOT "/Users/.../chosen_file_name.csv"
+
+The search has ALREADY been performed. Just answer based on the context provided."""
+        
+        return system_prompt
+    
+    def _clean_response_text(self, text: str) -> str:
+        """
+        Clean up response text - remove excessive whitespace
+        
+        Args:
+            text: Raw response text
+            
+        Returns:
+            Cleaned text
+        """
+        import re
+        
+        # Remove excessive blank lines (max 1 blank line between content)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        
+        # Remove lines with only whitespace
+        text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)
+        
+        # Remove excessive spaces
+        text = re.sub(r' {2,}', ' ', text)
+        
+        # Clean up bullet points with too much spacing
+        text = re.sub(r'\n\n•', '\n•', text)
+        text = re.sub(r'\n\n-', '\n-', text)
+        text = re.sub(r'\n\n\*', '\n*', text)
+        
+        # Remove trailing whitespace from each line
+        lines = text.split('\n')
+        lines = [line.rstrip() for line in lines]
+        text = '\n'.join(lines)
+        
+        # Trim overall whitespace
+        text = text.strip()
+        
+        return text
     
     def execute_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -155,6 +241,7 @@ class ClaudeClient:
             Tool result dict
         """
         logger.info(f"Executing tool: {tool_name}")
+        #logger.info(f"RAW tool_input: {tool_input}")
         
         try:
             # Check if it's an MCP tool
@@ -306,17 +393,48 @@ class ClaudeClient:
                     
                     # Execute tool
                     result = self.execute_tool(tool_name, tool_input)
-                    
                     # Format result content
-                    if result.get("success"):
+                    # NEW: Check for MCP success differently
+                    is_success = False
+                    content = ""
+
+                    if isinstance(result, dict):
+                        # Check various success indicators
+                        if result.get("success") is True:
+                            is_success = True
+                            content = result.get("result", result.get("message", "Success"))
+                        elif "content" in result:
+                            # MCP server response format
+                            mcp_content = result.get("content", [])
+                            if isinstance(mcp_content, list) and len(mcp_content) > 0:
+                                first_item = mcp_content[0]
+                                if isinstance(first_item, dict):
+                                    content = first_item.get("text", "")
+                                    # Check if it's an error
+                                    is_success = not result.get("isError", False)
+                                else:
+                                    content = str(mcp_content)
+                                    is_success = True
+                        else:
+                            content = str(result)
+                            is_success = True
+
+                    if is_success:
                         logger.info(f"    ✓ Tool succeeded")
-                        content = result.get("result", result.get("message", "Success"))
-                        if isinstance(content, dict):
-                            import json
-                            content = json.dumps(content, indent=2)
                     else:
-                        logger.error(f"    ✗ Tool failed: {result.get('error')}")
-                        content = f"Error: {result.get('error')}"
+                        logger.error(f"    ✗ Tool failed: {content}")
+                        content = f"Error: {content}"
+                    
+                    # # Format result content
+                    # if result.get("success"):
+                    #     logger.info(f"    ✓ Tool succeeded")
+                    #     content = result.get("result", result.get("message", "Success"))
+                    #     if isinstance(content, dict):
+                    #         import json
+                    #         content = json.dumps(content, indent=2)
+                    # else:
+                    #     logger.error(f"    ✗ Tool failed: {result.get('error')}")
+                    #     content = f"Error: {result.get('error')}"
                     
                     # Add tool result
                     tool_results.append({
@@ -342,6 +460,9 @@ class ClaudeClient:
                     if hasattr(block, "text"):
                         final_text += block.text
                 
+                # Clean up the response text (remove excessive whitespace)
+                final_text = self._clean_response_text(final_text)
+                
                 logger.info(f"Final response: {len(final_text)} chars, {turn_count} turns")
                 
                 return {
@@ -358,11 +479,13 @@ class ClaudeClient:
         # Max turns reached
         logger.warning(f"Max tool use turns ({max_tool_turns}) reached")
         
+        error_message = (
+            "I apologize, but I've reached the maximum number of tool use iterations. "
+            "Please try rephrasing your request or breaking it into smaller steps."
+        )
+        
         return {
-            "content": (
-                "I apologize, but I've reached the maximum number of tool use iterations. "
-                "Please try rephrasing your request or breaking it into smaller steps."
-            ),
+            "content": error_message,
             "model": model,
             "tokens_used": {
                 "input": total_input_tokens,

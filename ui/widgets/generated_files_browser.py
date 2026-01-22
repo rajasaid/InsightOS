@@ -160,10 +160,41 @@ class GeneratedFilesBrowser(QWidget):
         if str(self.output_dir) not in self.file_watcher.directories():
             self.file_watcher.addPath(str(self.output_dir))
         
-        # Organize by subdirectory
-        subdirs = ["summaries", "reports", "extracts", "templates"]
-        
         total_files = 0
+        
+        # === NEW: Show files in root of Generated folder ===
+        root_files = []
+        try:
+            root_files = [f for f in self.output_dir.iterdir() if f.is_file()]
+        except Exception as e:
+            logger.error(f"Error listing root files: {e}")
+        
+        if root_files:
+            # Create parent item for root files
+            root_item = QTreeWidgetItem(self.tree)
+            root_item.setText(0, f"📁 Root")
+            root_item.setData(0, Qt.ItemDataRole.UserRole, self.output_dir)
+            root_item.setFont(0, get_text_font(SIZE_BODY, WEIGHT_BOLD))
+            
+            # Sort by modification time, newest first
+            root_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            
+            for filepath in root_files:
+                file_item = QTreeWidgetItem(root_item)
+                
+                icon = self._get_file_icon(filepath)
+                file_item.setText(0, f"{icon} {filepath.name}")
+                file_item.setText(1, self._format_size(filepath.stat().st_size))
+                file_item.setText(2, self._format_time(filepath.stat().st_mtime))
+                file_item.setData(0, Qt.ItemDataRole.UserRole, filepath)
+                
+                total_files += 1
+            
+            root_item.setText(0, f"📁 Root ({len(root_files)})")
+            root_item.setExpanded(True)
+        
+        # === Existing: Show files in subdirectories ===
+        subdirs = ["summaries", "reports", "extracts", "templates"]
         
         for subdir in subdirs:
             subdir_path = self.output_dir / subdir
@@ -184,8 +215,8 @@ class GeneratedFilesBrowser(QWidget):
             # Get files in this subdirectory (sorted by modification time, newest first)
             try:
                 files = sorted(
-                    subdir_path.glob("*"),
-                    key=lambda p: p.stat().st_mtime if p.is_file() else 0,
+                    [f for f in subdir_path.iterdir() if f.is_file()],
+                    key=lambda p: p.stat().st_mtime,
                     reverse=True
                 )
             except Exception as e:
@@ -195,18 +226,17 @@ class GeneratedFilesBrowser(QWidget):
             # Add files to tree
             file_count = 0
             for filepath in files:
-                if filepath.is_file():
-                    file_item = QTreeWidgetItem(parent_item)
-                    
-                    # Icon based on file type
-                    icon = self._get_file_icon(filepath)
-                    file_item.setText(0, f"{icon} {filepath.name}")
-                    file_item.setText(1, self._format_size(filepath.stat().st_size))
-                    file_item.setText(2, self._format_time(filepath.stat().st_mtime))
-                    file_item.setData(0, Qt.ItemDataRole.UserRole, filepath)
-                    
-                    file_count += 1
-                    total_files += 1
+                file_item = QTreeWidgetItem(parent_item)
+                
+                # Icon based on file type
+                icon = self._get_file_icon(filepath)
+                file_item.setText(0, f"{icon} {filepath.name}")
+                file_item.setText(1, self._format_size(filepath.stat().st_size))
+                file_item.setText(2, self._format_time(filepath.stat().st_mtime))
+                file_item.setData(0, Qt.ItemDataRole.UserRole, filepath)
+                
+                file_count += 1
+                total_files += 1
             
             # Update parent item with count
             if file_count > 0:

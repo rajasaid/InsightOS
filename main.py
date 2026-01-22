@@ -5,7 +5,7 @@ InsightOS application entry point with MCP support
 
 import sys
 from pathlib import Path
-
+import logging 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from ui.main_window import MainWindow
@@ -97,6 +97,7 @@ def main():
     global logger
     
     # Setup logging
+    #logger = setup_logger(level=logging.DEBUG)
     logger = setup_logger()
     logger.info("=" * 60)
     logger.info("Starting InsightOS...")
@@ -151,13 +152,14 @@ def main():
     else:
         logger.warning("⚠ MCP initialization had issues (continuing anyway)")
     
-    # Create indexer (shared between wizard and main window)
-    indexer = Indexer()
-    logger.info("Indexer created")
     
     # Check if first-time setup needed
     config_manager = ConfigManager()
     
+    # Create indexer (shared between wizard and main window)
+    indexer = Indexer(config_manager=config_manager)
+    logger.info("Indexer created")
+
     if not config_manager.is_configured():
         logger.info("First-time setup required, showing wizard")
         

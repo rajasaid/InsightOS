@@ -14,7 +14,7 @@ from ui.widgets.chat_widget import ChatWidget
 from ui.widgets.generated_files_browser import GeneratedFilesBrowser
 from ui.dialogs.setup_wizard import SetupWizard
 from ui.dialogs.settings_dialog import SettingsDialog
-from security.config_manager import ConfigManager
+from security.config_manager import ConfigManager, get_config_manager
 from indexing.indexer import Indexer
 from core.rag_retriever import RAGRetriever
 from agent import ClaudeClient
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         # Initialize config manager
-        self.config_manager = ConfigManager()
+        self.config_manager = get_config_manager()
         config = self.config_manager.get_config()
         
         # Initialize MCP configuration

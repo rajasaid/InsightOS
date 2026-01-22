@@ -10,6 +10,9 @@ from datetime import datetime
 from indexing.file_readers import get_reader_for_file, FileReadError
 from indexing.chunker import chunk_text, TextChunk
 from indexing.chromadb_client import ChromaDBClient
+from indexing.normalizer import get_default_normalizer, Normalizer
+from mcp_servers import config
+from security.config_manager import ConfigManager, get_config_manager
 from utils.logger import get_logger
 from utils.file_utils import list_files_in_directory, get_file_size
 from config.settings import (
@@ -78,7 +81,9 @@ class Indexer:
         self,
         chromadb_client: Optional[ChromaDBClient] = None,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
-        chunk_overlap: int = DEFAULT_CHUNK_OVERLAP
+        chunk_overlap: int = DEFAULT_CHUNK_OVERLAP, 
+        use_normalization=True, normalizer=None,
+        config_manager: ConfigManager = None
     ):
         """
         Initialize Indexer
@@ -91,7 +96,10 @@ class Indexer:
         self.chromadb_client = chromadb_client or ChromaDBClient()
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        
+        self.config_manager = config_manager or get_config_manager()
+        self.use_normalization = use_normalization
+        self.normalizer = normalizer or get_default_normalizer()
+
         logger.info(
             f"Indexer initialized (chunk_size={chunk_size}, "
             f"chunk_overlap={chunk_overlap})"
@@ -119,7 +127,11 @@ class Indexer:
             IndexingResult with statistics
         """
         logger.info(f"Starting directory indexing: {directory_path}")
-        
+        try:
+            self.config_manager.reload()
+        except Exception as e:
+            logger.warning(f"Config reload failed: {e}")
+
         result = IndexingResult()
         
         try:
@@ -230,7 +242,10 @@ class Indexer:
                     'success': False,
                     'error': "No text extracted from file"
                 }
-            
+            # Normalize text
+            if self.use_normalization:
+                text = self.normalizer.normalize(text)
+
             logger.debug(f"Extracted {len(text)} characters from {filepath}")
             
             # Chunk text
@@ -445,9 +460,13 @@ class Indexer:
             List of file paths
         """
         try:
+            cfg = self.config_manager.get_config()
+            enabled = set(cfg.get('file_types_enabled', []))
+            supported = set(SUPPORTED_EXTENSIONS)
+            extensions = sorted(enabled & supported)
             files = list_files_in_directory(
                 directory=directory,
-                extensions=SUPPORTED_EXTENSIONS,
+                extensions=extensions,
                 recursive=recursive,
                 include_hidden=not SKIP_HIDDEN_FILES
             )
@@ -507,8 +526,17 @@ class Indexer:
         
         # Check if extension is supported
         extension = filepath.suffix.lower()
-        if extension not in SUPPORTED_EXTENSIONS:
-            return f"Unsupported file type: {extension}"
+        try:
+            # Get enabled extensions from config
+            config = self.config_manager.get_config()
+            enabled_extensions = config.get('file_types_enabled', [])
+            if extension not in enabled_extensions:
+                return f"File type disabled: {extension}"
+        except Exception as e:
+            return f"Error checking enabled file types: {str(e)}"
+        
+        # if extension not in SUPPORTED_EXTENSIONS:
+        #     return f"Unsupported file type: {extension}"
         
         # Check if file is readable
         from utils.file_utils import is_readable

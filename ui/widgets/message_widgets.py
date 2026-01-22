@@ -69,12 +69,12 @@ class UserMessageWidget(QWidget):
         self.setStyleSheet(f"""
             QFrame#user_bubble {{
                 background-color: {ACCENT_COLOR};
-                border-radius: 12px;
-                border-bottom-right-radius: 4px;
+                border-radius: 24px;
+                border-bottom-right-radius: 12px;
             }}
             
             QLabel {{
-                color: white;
+                color: black;
             }}
         """)
 
