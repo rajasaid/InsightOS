@@ -189,6 +189,51 @@ class SettingsDialog(QDialog):
         
         logger.debug("Settings loaded into dialog")
     
+
+    def _show_restart_dialog(self):
+        """Show restart required dialog"""
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setWindowTitle("Restart Required")
+        msg_box.setText("Settings Saved")
+        msg_box.setInformativeText(
+            "Changes to Agentic Mode or MCP Servers require a restart to take effect.\n\n"
+            "Would you like to restart InsightOS now?"
+        )
+        
+        # Add buttons
+        restart_btn = msg_box.addButton("Restart Now", QMessageBox.ButtonRole.AcceptRole)
+        later_btn = msg_box.addButton("Restart Later", QMessageBox.ButtonRole.RejectRole)
+        msg_box.setDefaultButton(restart_btn)
+        
+        # Show dialog
+        msg_box.exec()
+        
+        # Check which button was clicked
+        if msg_box.clickedButton() == restart_btn:
+            self._restart_application()
+        else:
+            self.accept()
+
+    def _restart_application(self):
+        """Restart the application"""
+        import sys
+        import os
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtCore import QProcess
+        
+        # Close settings dialog
+        self.accept()
+        
+        # Get the main window and close it
+        main_window = self.parent()
+        if main_window:
+            main_window.close()
+        
+        # Restart the application
+        QProcess.startDetached(sys.executable, sys.argv)
+        QApplication.quit()
+        
     def _save_settings(self):
         """Save settings from all tabs"""
         # Collect settings from all tabs
@@ -202,8 +247,36 @@ class SettingsDialog(QDialog):
             settings['api_key'] = api_key
         
         # Save to config
-        try:
+        try: 
             config = self.config_manager.get_config()
+            
+            # Track if restart is needed
+            restart_needed = False
+            
+            # Check if agentic mode changed
+            old_agentic_mode = config.get('agentic_mode_enabled', False)
+            new_agentic_mode = self.advanced_tab.agentic_mode_checkbox.isChecked()
+            
+            if old_agentic_mode != new_agentic_mode:
+                restart_needed = True
+            
+            # Check if MCP servers changed
+            old_mcp_servers = config.get('mcp_servers_enabled', {})
+            new_mcp_servers = {}
+            
+            # Get new MCP server states (adjust checkbox names to match yours)
+            new_mcp_servers['filesystem'] = self.advanced_tab.server_checkboxes['filesystem'].isChecked()
+            new_mcp_servers['memory'] = self.advanced_tab.server_checkboxes['memory'].isChecked()
+            new_mcp_servers['brave-search'] = self.advanced_tab.server_checkboxes['brave-search'].isChecked()
+            
+            if old_mcp_servers != new_mcp_servers:
+                restart_needed = True
+            
+            # ... save all settings ...
+            config['agentic_mode_enabled'] = new_agentic_mode
+            config['mcp_servers_enabled'] = new_mcp_servers
+            # ... save other settings ...
+            
             config.update(settings)
             
             ok = self.config_manager.save_config(config)
@@ -214,18 +287,22 @@ class SettingsDialog(QDialog):
             # Apply MCP settings (from AdvancedTab)
             self.advanced_tab.apply_mcp_settings()
             
-            # Emit signal
-            self.settings_changed.emit(settings)
+            # Show restart notification if needed
+            if restart_needed:
+                self._show_restart_dialog()
+            else:
+                # Emit signal
+                self.settings_changed.emit(settings)
 
-            # Show success message briefly
-            QMessageBox.information(
-                self,
-                "Settings Saved",
-                "Your settings have been saved successfully."
-            )
-            
-            self.accept()
-            logger.info("Settings saved successfully")
+                # Show success message briefly
+                QMessageBox.information(
+                    self,
+                    "Settings Saved",
+                    "Your settings have been saved successfully."
+                )
+                
+                self.accept()
+                logger.info("Settings saved successfully")
             
         except Exception as e:
             logger.error(f"Error saving settings: {e}")
