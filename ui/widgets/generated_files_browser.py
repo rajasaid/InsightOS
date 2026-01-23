@@ -148,112 +148,117 @@ class GeneratedFilesBrowser(QWidget):
         """)
     
     def refresh_files(self):
-        """Refresh the file tree"""
+        """Refresh the file tree (show ALL folders and files under output_dir)."""
         self.tree.clear()
-        
+
         # Ensure output directory exists
         if not self.output_dir.exists():
             self.output_dir.mkdir(parents=True, exist_ok=True)
             logger.info(f"Created output directory: {self.output_dir}")
-        
-        # Add to file watcher if not already watching
-        if str(self.output_dir) not in self.file_watcher.directories():
-            self.file_watcher.addPath(str(self.output_dir))
-        
-        total_files = 0
-        
-        # === NEW: Show files in root of Generated folder ===
-        root_files = []
-        try:
-            root_files = [f for f in self.output_dir.iterdir() if f.is_file()]
-        except Exception as e:
-            logger.error(f"Error listing root files: {e}")
-        
-        if root_files:
-            # Create parent item for root files
-            root_item = QTreeWidgetItem(self.tree)
-            root_item.setText(0, f"📁 Root")
-            root_item.setData(0, Qt.ItemDataRole.UserRole, self.output_dir)
-            root_item.setFont(0, get_text_font(SIZE_BODY, WEIGHT_BOLD))
-            
-            # Sort by modification time, newest first
-            root_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-            
-            for filepath in root_files:
-                file_item = QTreeWidgetItem(root_item)
-                
-                icon = self._get_file_icon(filepath)
-                file_item.setText(0, f"{icon} {filepath.name}")
-                file_item.setText(1, self._format_size(filepath.stat().st_size))
-                file_item.setText(2, self._format_time(filepath.stat().st_mtime))
-                file_item.setData(0, Qt.ItemDataRole.UserRole, filepath)
-                
-                total_files += 1
-            
-            root_item.setText(0, f"📁 Root ({len(root_files)})")
-            root_item.setExpanded(True)
-        
-        # === Existing: Show files in subdirectories ===
-        subdirs = ["summaries", "reports", "extracts", "templates"]
-        
-        for subdir in subdirs:
-            subdir_path = self.output_dir / subdir
-            
-            if not subdir_path.exists():
-                continue
-            
-            # Add subdirectory to watcher
-            if str(subdir_path) not in self.file_watcher.directories():
-                self.file_watcher.addPath(str(subdir_path))
-            
-            # Create parent item for subdirectory
-            parent_item = QTreeWidgetItem(self.tree)
-            parent_item.setText(0, f"📁 {subdir.title()}")
-            parent_item.setData(0, Qt.ItemDataRole.UserRole, subdir_path)
-            parent_item.setFont(0, get_text_font(SIZE_BODY, WEIGHT_BOLD))
-            
-            # Get files in this subdirectory (sorted by modification time, newest first)
-            try:
-                files = sorted(
-                    [f for f in subdir_path.iterdir() if f.is_file()],
-                    key=lambda p: p.stat().st_mtime,
-                    reverse=True
-                )
-            except Exception as e:
-                logger.error(f"Error listing files in {subdir_path}: {e}")
-                files = []
-            
-            # Add files to tree
-            file_count = 0
-            for filepath in files:
-                file_item = QTreeWidgetItem(parent_item)
-                
-                # Icon based on file type
-                icon = self._get_file_icon(filepath)
-                file_item.setText(0, f"{icon} {filepath.name}")
-                file_item.setText(1, self._format_size(filepath.stat().st_size))
-                file_item.setText(2, self._format_time(filepath.stat().st_mtime))
-                file_item.setData(0, Qt.ItemDataRole.UserRole, filepath)
-                
-                file_count += 1
-                total_files += 1
-            
-            # Update parent item with count
-            if file_count > 0:
-                parent_item.setText(0, f"📁 {subdir.title()} ({file_count})")
-                parent_item.setExpanded(True)
-            else:
-                # Remove empty parent
-                index = self.tree.indexOfTopLevelItem(parent_item)
-                self.tree.takeTopLevelItem(index)
-        
+
+        # Keep watcher in sync with actual folders
+        self._sync_watcher_dirs(self.output_dir)
+
+        # Root node
+        root_item = QTreeWidgetItem(self.tree)
+        root_item.setText(0, f"📁 {self.output_dir.name}")
+        root_item.setData(0, Qt.ItemDataRole.UserRole, self.output_dir)
+        root_item.setFont(0, get_text_font(SIZE_BODY, WEIGHT_BOLD))
+
+        total_files = self._add_dir_to_tree(root_item, self.output_dir)
+        root_item.setText(0, f"📁 {self.output_dir.name} ({total_files})")
+        root_item.setExpanded(True)
+
         # Update info label
         self.info_label.setText(
             f"Location: {self.output_dir} | {total_files} file(s)"
         )
-        
+
         logger.debug(f"Refreshed file browser: {total_files} files found")
-    
+
+    def _iter_dirs_recursive(self, root: Path) -> list[Path]:
+        """Return all directories under root (including root)."""
+        dirs = []
+        try:
+            for p in root.rglob("*"):
+                if p.is_dir():
+                    dirs.append(p)
+        except Exception as e:
+            logger.error(f"Error walking directory tree: {e}")
+        return [root] + dirs
+
+
+    def _sync_watcher_dirs(self, root: Path):
+        """Ensure watcher tracks all directories under root (best effort)."""
+        try:
+            desired = set(str(p) for p in self._iter_dirs_recursive(root))
+            current = set(self.file_watcher.directories())
+
+            to_add = list(desired - current)
+            to_remove = list(current - desired)
+
+            if to_remove:
+                self.file_watcher.removePaths(to_remove)
+
+            # QFileSystemWatcher can have OS limits; add best effort
+            if to_add:
+                self.file_watcher.addPaths(to_add)
+
+        except Exception as e:
+            logger.warning(f"Failed to sync file watcher directories: {e}")
+
+
+    def _add_dir_to_tree(self, parent_item: QTreeWidgetItem, directory: Path) -> int:
+        """
+        Add a directory node and all its children to the tree.
+        Returns number of files added under this directory (recursive).
+        """
+        file_count = 0
+
+        # List children (dirs first, then files), sorted by name
+        try:
+            children = list(directory.iterdir())
+        except Exception as e:
+            logger.error(f"Error listing directory {directory}: {e}")
+            return 0
+
+        dirs = sorted([c for c in children if c.is_dir()], key=lambda p: p.name.lower())
+        files = sorted([c for c in children if c.is_file()], key=lambda p: p.name.lower())
+
+        # Add subdirectories
+        for d in dirs:
+            dir_item = QTreeWidgetItem(parent_item)
+            dir_item.setText(0, f"📁 {d.name}")
+            dir_item.setData(0, Qt.ItemDataRole.UserRole, d)
+            dir_item.setFont(0, get_text_font(SIZE_BODY, WEIGHT_BOLD))
+
+            # Recurse
+            sub_count = self._add_dir_to_tree(dir_item, d)
+            if sub_count > 0:
+                dir_item.setText(0, f"📁 {d.name} ({sub_count})")
+            # Expand folders by default if you want
+            dir_item.setExpanded(True)
+
+            file_count += sub_count
+
+        # Add files
+        for f in files:
+            try:
+                st = f.stat()
+            except Exception:
+                # Skip unreadable entries gracefully
+                continue
+
+            file_item = QTreeWidgetItem(parent_item)
+            icon = self._get_file_icon(f)
+            file_item.setText(0, f"{icon} {f.name}")
+            file_item.setText(1, self._format_size(st.st_size))
+            file_item.setText(2, self._format_time(st.st_mtime))
+            file_item.setData(0, Qt.ItemDataRole.UserRole, f)
+            file_count += 1
+
+        return file_count
+
     def _get_file_icon(self, filepath: Path) -> str:
         """Get icon emoji for file type"""
         ext = filepath.suffix.lower()

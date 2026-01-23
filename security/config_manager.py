@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 from security.key_manager import KeyManager
 from utils.logger import get_logger
 from utils.file_utils import ensure_directory_exists, read_text_file, write_text_file
+from copy import deepcopy as _deepcopy
 
 logger = get_logger(__name__)
 
@@ -140,7 +141,7 @@ class ConfigManager:
         Returns:
             Configuration dictionary (copy)
         """
-        return self._config.copy()
+        return _deepcopy(self._config)
     
     def save_config(self, config: Dict[str, Any]) -> bool:
         """
@@ -461,10 +462,10 @@ class ConfigManager:
             logger.error(f"Failed to export configuration: {e}")
             return False
     
-    import copy
+    
     def reload(self) -> Dict[str, Any]:
         self._config = self._load_or_create_config()
-        return copy.deepcopy(self._config)
+        return _deepcopy(self._config)
 
     def import_config(self, import_path: Path, merge: bool = True) -> bool:
         """
