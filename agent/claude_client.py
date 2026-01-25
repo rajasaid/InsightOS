@@ -339,14 +339,16 @@ The search has ALREADY been performed. Just answer based on the context provided
                         max_tokens=4096,
                         system=system_prompt,
                         messages=messages,
-                        tools=tools
+                        tools=tools,
+                        temperature=0.1
                     )
                 else:
                     response = self.client.messages.create(
                         model=model,
                         max_tokens=4096,
                         system=system_prompt,
-                        messages=messages
+                        messages=messages,
+                        temperature=0.1
                     )
                 
                 # Track tokens

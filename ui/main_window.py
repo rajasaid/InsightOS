@@ -72,13 +72,13 @@ class IndexingThread(QThread):
 class MainWindow(QMainWindow):
     """Main application window with MCP and agent integration"""
     
-    def __init__(self, indexer: Indexer = None):
+    def __init__(self, config_manager: ConfigManager=None, indexer: Indexer = None):
         super().__init__()
         
         # Initialize config manager
-        self.config_manager = get_config_manager()
-        config = self.config_manager.get_config()
-        
+        self.config_manager = config_manager if config_manager else get_config_manager()
+        config = self.config_manager.reload()
+
         # Initialize MCP configuration
         self.mcp_config = get_mcp_config()
         logger.info(f"MCP initialized: {list(self.mcp_config.get_enabled_servers().keys())}")
@@ -244,14 +244,36 @@ class MainWindow(QMainWindow):
         documentation_action.triggered.connect(self._show_documentation)
         help_menu.addAction(documentation_action)
     
+    def _get_mcp_config_status(self):
+        """Get MCP configuration status for status bar"""
+        return "🟢 MCP" if self.mcp_config.validate_filesystem_access() else "🔴 MCP"
+        
+    def _get_config_api_status(self):
+        """Get API key status for status bar"""
+        return "🟢 API Key" if self.config_manager.has_api_key() else "🔴 API Key"
+    
+    def _get_agent_status(self):
+        """Get agent status for status bar"""
+        config = self.config_manager.reload()
+        agent_enabled = False
+        try:
+            agent_enabled = config.get("agentic_mode_consent_given", False) and config.get("agentic_mode_enabled", False)
+            logger.debug(f"Agent enabled in config: {agent_enabled}")
+        except Exception:
+            agent_enabled = False
+        if self.claude_client and agent_enabled:
+            return "🟢 Agent"
+        else:
+            return "🔴 Agent"
+    
     def _setup_status_bar(self):
         """Setup status bar"""
         statusbar = self.statusBar()
         
         # Show MCP and API status
-        mcp_status = "🟢 MCP" if self.mcp_config.validate_filesystem_access() else "🔴 MCP"
-        api_status = "🟢 API Key" if self.config_manager.has_api_key() else "🔴 API Key"
-        agent_status = "🟢 Agent" if self.claude_client else "🔴 Agent"
+        mcp_status = self._get_mcp_config_status()
+        api_status = self._get_config_api_status()
+        agent_status = self._get_agent_status()
         
         statusbar.showMessage(
             f"{api_status}  |  {agent_status}  |  {mcp_status}  |  📁 Ready"
@@ -377,9 +399,9 @@ class MainWindow(QMainWindow):
     
     def _update_status_bar(self):
         """Update status bar with current state"""
-        mcp_status = "🟢 MCP" if self.mcp_config.validate_filesystem_access() else "🔴 MCP"
-        api_status = "🟢 API Key" if self.config_manager.has_api_key() else "🔴 API Key"
-        agent_status = "🟢 Agent" if self.claude_client else "🔴 Agent"
+        mcp_status = self._get_mcp_config_status()
+        api_status = self._get_config_api_status()
+        agent_status = self._get_agent_status()
         
         stats = self.indexer.get_stats()
         chunks_status = f"📁 {stats['total_chunks']} chunks indexed"
@@ -507,17 +529,8 @@ class MainWindow(QMainWindow):
         self.sidebar.set_indexing(False)
         self.sidebar.add_btn.setEnabled(True)
         self.sidebar.reindex_btn.setEnabled(True)
-        
-        # Update stats
-        self._update_status_bar()
-        stats = self.indexer.get_stats()
-        self.sidebar.update_file_count(stats['total_chunks'])
-        
-        # Update last indexed time
-        from datetime import datetime
-        self.sidebar.update_last_indexed(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        
-        # Show result in status bar
+            
+        # Show result in status bar temporarily
         if result.files_failed > 0:
             self.statusBar().showMessage(
                 f"⚠️ Indexed: {result.files_processed} files, {result.files_failed} failed",
@@ -528,7 +541,18 @@ class MainWindow(QMainWindow):
                 f"✅ Indexed: {result.files_processed} files, {result.chunks_created} chunks",
                 5000
             )
-        
+
+        # Schedule status bar update to permanent state after 5 seconds
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(5000, self._update_status_bar)
+
+        # Update stats (for sidebar)
+        stats = self.indexer.get_stats()
+        self.sidebar.update_file_count(stats['total_chunks'])
+        # Update last indexed time
+        from datetime import datetime
+        self.sidebar.update_last_indexed(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
         # Show errors if any
         if result.errors:
             error_msg = f"Indexing completed with {len(result.errors)} errors:\n\n"
@@ -543,6 +567,7 @@ class MainWindow(QMainWindow):
         
         logger.info("Indexing complete, UI updated")
     
+    
     def _on_reindex_finished(self, result):
         """Handle re-indexing completion (all directories)"""
         logger.info(f"Re-indexing finished: {result}")
@@ -552,15 +577,8 @@ class MainWindow(QMainWindow):
         self.sidebar.add_btn.setEnabled(True)
         self.sidebar.reindex_btn.setEnabled(True)
         
-        # Update stats
-        self._update_status_bar()
-        stats = self.indexer.get_stats()
-        self.sidebar.update_file_count(stats['total_chunks'])
         
-        from datetime import datetime
-        self.sidebar.update_last_indexed(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        
-        # Show result
+        # Show result temporarily
         if result.files_failed > 0:
             self.statusBar().showMessage(
                 f"⚠️ Re-indexed: {result.files_processed} files, {result.files_failed} failed",
@@ -571,6 +589,17 @@ class MainWindow(QMainWindow):
                 f"✅ Re-indexed: {result.files_processed} files, {result.chunks_created} chunks",
                 5000
             )
+
+        # Schedule permanent status after 5 seconds
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(5000, self._update_status_bar)
+
+        # Update stats (for sidebar)
+        stats = self.indexer.get_stats()
+        self.sidebar.update_file_count(stats['total_chunks'])
+        
+        from datetime import datetime
+        self.sidebar.update_last_indexed(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
         # Show errors if any
         if result.errors:
