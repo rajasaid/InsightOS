@@ -190,7 +190,7 @@ def main():
     
     # Show main window (pass the same indexer instance)
     try:
-        window = MainWindow(indexer=indexer)
+        window = MainWindow(indexer=indexer, config_manager=config_manager)
         window.show()
         logger.info("=" * 60)
         logger.info("✓ InsightOS started successfully")

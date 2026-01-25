@@ -123,6 +123,31 @@ class ChromaDBClient:
             logger.error(f"Failed to add documents: {e}")
             return False
     
+    def get_all_documents(self) -> List[Dict[str, Any]]:
+        """
+        Get all documents from collection (for BM25 indexing)
+        
+        Returns:
+            List of document dictionaries with 'document' and 'metadata'
+        """
+        try:
+            results = self.collection.get(
+                include=['documents', 'metadatas']
+            )
+            
+            documents = []
+            for i, doc in enumerate(results['documents']):
+                documents.append({
+                    'document': doc,
+                    'metadata': results['metadatas'][i] if results['metadatas'] else {}
+                })
+            
+            return documents
+        
+        except Exception as e:
+            logger.error(f"Error getting all documents: {e}")
+            return []
+        
     def add_single_document(
         self,
         document: str,

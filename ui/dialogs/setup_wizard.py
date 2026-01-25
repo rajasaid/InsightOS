@@ -162,7 +162,7 @@ class WelcomePage(QWizardPage):
         super().__init__(parent)
         
         self.setTitle("Welcome to InsightOS")
-        self.setSubTitle("Your intelligent desktop knowledge assistant")
+        self.setSubTitle("Your intelligent desktop knowledge assistant with AI-powered document understanding and file generation")
         
         self._setup_ui()
     
@@ -171,41 +171,54 @@ class WelcomePage(QWizardPage):
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         
-        # Logo/Icon (placeholder)
+        # Logo/Icon
         logo_label = create_logo_label(size=200)
-        #logo_label.setFont(QFont("SF Pro Text", 64))
-        #logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(logo_label)
         
         # Welcome text
         welcome_text = QLabel(
             "<h2>Welcome to InsightOS!</h2>"
             "<p style='font-size: 14px;'>"
-            "InsightOS helps you find information in your documents using "
-            "AI-powered semantic search."
+            "InsightOS is your AI-powered knowledge assistant that understands your documents "
+            "and helps you create new content through natural conversation."
             "</p>"
         )
         welcome_text.setWordWrap(True)
         welcome_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(welcome_text)
         
-        # Features list
-        features_label = QLabel(
-            "<p style='font-size: 13px;'><b>What you can do:</b></p>"
-            "<ul style='font-size: 13px;'>"
-            "<li>Ask questions about your documents in natural language</li>"
-            "<li>Get answers with citations to source files</li>"
-            "<li>Search across multiple file types (PDF, Word, Markdown, code, etc.)</li>"
-            "<li>Keep everything local and private</li>"
+        # Core capabilities
+        capabilities_label = QLabel(
+            "<p style='font-size: 13px;'><b>🎯 Core Capabilities:</b></p>"
+            "<ul style='font-size: 13px; line-height: 1.6;'>"
+            "<li><b>Smart Document Search</b> - Ask questions about your files in natural language</li>"
+            "<li><b>Agentic File Creation</b> - Create documents, reports, and data files through conversation</li>"
+            "<li><b>Multi-Format Support</b> - PDFs, Word docs, spreadsheets, Markdown, code, and more</li>"
+            "<li><b>Citation & Verification</b> - Answers include precise source citations</li>"
+            "<li><b>Local & Private</b> - Everything runs on your machine</li>"
             "</ul>"
         )
-        features_label.setWordWrap(True)
-        layout.addWidget(features_label)
+        capabilities_label.setWordWrap(True)
+        layout.addWidget(capabilities_label)
+        
+        # Advanced features
+        advanced_label = QLabel(
+            "<p style='font-size: 13px;'><b>⚡ Advanced Features:</b></p>"
+            "<ul style='font-size: 13px; line-height: 1.6;'>"
+            "<li><b>Semantic Search</b> - Semantic textual matching for better accuracy</li>"
+            "<li><b>MCP Integration</b> - Secure file operations via Model Context Protocol</li>"
+            "<li><b>Agentic Mode</b> - AI autonomously searches, reads, and creates files</li>"
+            "<li><b>Multi-lingual</b> - Supports Hebrew, English, Arabic, and 100+ languages with RTL support</li>"
+            "</ul>"
+        )
+        advanced_label.setWordWrap(True)
+        layout.addWidget(advanced_label)
         
         # Setup info
         setup_info = QLabel(
             "<p style='font-size: 13px; color: #8E8E93;'>"
-            "This wizard will help you set up InsightOS in a few simple steps."
+            "This wizard will guide you through setting up your API key and indexing your first documents. "
+            "Takes just a few minutes to get started."
             "</p>"
         )
         setup_info.setWordWrap(True)
