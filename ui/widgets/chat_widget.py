@@ -4,13 +4,13 @@ Chat interface widget with message history and input field
 Updated to integrate with agent layer and RAG retrieval
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QScrollArea, QLabel, QFrame,
     QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QThread
-from PyQt6.QtGui import QFont, QTextCursor
+from PySide6.QtCore import Qt, Signal, QTimer, QPropertyAnimation, QEasingCurve, QThread
+from PySide6.QtGui import QFont, QTextCursor
 
 from ui.widgets.message_widgets import UserMessageWidget, AssistantMessageWidget
 from utils.logger import get_logger
@@ -22,8 +22,8 @@ class ChatWorker(QThread):
     """Worker thread for async chat processing"""
     
     # Signals
-    response_ready = pyqtSignal(str, list)  # (response_text, citations)
-    error_occurred = pyqtSignal(str)  # error_message
+    response_ready = Signal(str, list)  # (response_text, citations)
+    error_occurred = Signal(str)  # error_message
     
     def __init__(self, agent_client, rag_retriever, message, conversation_history):
         super().__init__()
@@ -77,7 +77,7 @@ class ChatWidget(QWidget):
     """Chat interface with message history and input field"""
     
     # Signals
-    message_submitted = pyqtSignal(str)  # Emitted when user submits a message
+    message_submitted = Signal(str)  # Emitted when user submits a message
     
     def __init__(self, agent_client=None, rag_retriever=None, parent=None):
         """
@@ -365,7 +365,7 @@ class ChatWidget(QWidget):
     
     def eventFilter(self, obj, event):
         """Handle keyboard events for shortcuts"""
-        from PyQt6.QtCore import QEvent, Qt
+        from PySide6.QtCore import QEvent, Qt
         
         if obj == self.input_field and event.type() == QEvent.Type.KeyPress:
             # On macOS, ControlModifier IS Cmd key

@@ -3,13 +3,13 @@ ui/generated_files_browser.py
 Widget for browsing and managing AI-generated files
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget,
     QTreeWidgetItem, QPushButton, QLabel, QTextEdit,
     QMenu, QMessageBox, QFileDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QFileSystemWatcher
-from PyQt6.QtGui import QIcon, QAction
+from PySide6.QtCore import Qt, Signal, QFileSystemWatcher
+from PySide6.QtGui import QIcon, QAction
 from pathlib import Path
 from datetime import datetime
 import os
@@ -31,8 +31,8 @@ class GeneratedFilesBrowser(QWidget):
     """Widget for browsing AI-generated files"""
     
     # Signals
-    file_opened = pyqtSignal(Path)  # Emitted when file is opened
-    file_selected = pyqtSignal(Path)  # Emitted when file is selected
+    file_opened = Signal(Path)  # Emitted when file is opened
+    file_selected = Signal(Path)  # Emitted when file is selected
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -441,7 +441,7 @@ class GeneratedFilesBrowser(QWidget):
     
     def copy_path(self, filepath: Path):
         """Copy file path to clipboard"""
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
         
         clipboard = QApplication.clipboard()
         clipboard.setText(str(filepath))
@@ -505,7 +505,7 @@ class GeneratedFilesBrowser(QWidget):
         """Handle directory change from file watcher"""
         logger.debug(f"Directory changed: {path}")
         # Auto-refresh after a short delay (avoid too frequent refreshes)
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
         QTimer.singleShot(500, self.refresh_files)
     
     def get_selected_file(self) -> Path | None:

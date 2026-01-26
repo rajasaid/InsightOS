@@ -3,14 +3,14 @@ ui/dialogs/setup_wizard.py
 First-time setup wizard for InsightOS
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWizard, QWizardPage, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog,
     QListWidget, QListWidgetItem, QProgressBar,
     QTextEdit, QCheckBox, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QPixmap
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QFont, QPixmap
 
 from pathlib import Path
 
@@ -41,9 +41,9 @@ class SetupWizard(QWizard):
     PAGE_COMPLETE = 4
     
     # Signals
-    api_key_configured = pyqtSignal(str)  # Emitted with API key
-    directories_selected = pyqtSignal(list)  # Emitted with directory list
-    setup_completed = pyqtSignal()  # Emitted when wizard completes
+    api_key_configured = Signal(str)  # Emitted with API key
+    directories_selected = Signal(list)  # Emitted with directory list
+    setup_completed = Signal()  # Emitted when wizard completes
     
     def __init__(self, indexer=None, parent=None):
         super().__init__(parent)
@@ -231,7 +231,7 @@ class WelcomePage(QWizardPage):
 class APIKeyPage(QWizardPage):
     """API key configuration page"""
     
-    api_key_validated = pyqtSignal(str)
+    api_key_validated = Signal(str)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -369,7 +369,7 @@ class APIKeyPage(QWizardPage):
 class DirectoriesPage(QWizardPage):
     """Directory selection page"""
     
-    directories_changed = pyqtSignal(list)
+    directories_changed = Signal(list)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -505,7 +505,7 @@ class DirectoriesPage(QWizardPage):
 class IndexingPage(QWizardPage):
     """Indexing progress page"""
     
-    indexing_complete = pyqtSignal()
+    indexing_complete = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -584,10 +584,10 @@ class IndexingPage(QWizardPage):
                 self.details_text.append(f"[{progress}%] {message}")
         
         # Start indexing in background (to keep UI responsive)
-        from PyQt6.QtCore import QThread, pyqtSignal
+        from PySide6.QtCore import QThread, Signal
         
         class IndexingThread(QThread):
-            finished = pyqtSignal(object)  # Emits IndexingResult
+            finished = Signal(object)  # Emits IndexingResult
             
             def __init__(self, indexer, directories, progress_callback):
                 super().__init__()

@@ -3,14 +3,14 @@ ui/widgets/sidebar_widget.py
 Sidebar widget with directory management and status display
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QListWidget, QListWidgetItem,
     QFileDialog, QProgressBar, QMessageBox,
     QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 from pathlib import Path
 
 from indexing.indexer import Indexer
@@ -23,10 +23,10 @@ class SidebarWidget(QWidget):
     """Sidebar widget for directory management and status display"""
     
     # Signals
-    directory_added = pyqtSignal(str)  # Emitted when directory is added
-    directory_removed = pyqtSignal(str)  # Emitted when directory is removed
-    reindex_requested = pyqtSignal()  # Emitted when re-index is requested
-    settings_requested = pyqtSignal()  # Emitted when settings button clicked
+    directory_added = Signal(str)  # Emitted when directory is added
+    directory_removed = Signal(str)  # Emitted when directory is removed
+    reindex_requested = Signal()  # Emitted when re-index is requested
+    settings_requested = Signal()  # Emitted when settings button clicked
     
     def __init__(self, parent=None):
         super().__init__(parent)

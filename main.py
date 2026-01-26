@@ -6,7 +6,7 @@ InsightOS application entry point with MCP support
 import sys
 from pathlib import Path
 import logging 
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from ui.main_window import MainWindow
 from ui.dialogs.setup_wizard import SetupWizard
@@ -86,7 +86,7 @@ def check_prerequisites():
         return False, "chromadb package not installed. Run: pip install chromadb"
     
     try:
-        from PyQt6 import QtWidgets
+        from PySide6 import QtWidgets
     except ImportError:
         return False, "PyQt6 not installed. Run: pip install PyQt6"
     
@@ -95,10 +95,14 @@ def check_prerequisites():
 
 def main():
     global logger
+
+    # Determine logging level
+    logging_level = logging.INFO
+    if '--debug' in sys.argv:
+        logging_level = logging.DEBUG
     
     # Setup logging
-    #logger = setup_logger(level=logging.DEBUG)
-    logger = setup_logger()
+    logger = setup_logger(level=logging_level)
     logger.info("=" * 60)
     logger.info("Starting InsightOS...")
     logger.info("=" * 60)
