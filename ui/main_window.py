@@ -3,10 +3,10 @@ ui/main_window.py
 Main application window with MCP, agent, and RAG integration
 """
 
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QMessageBox, QSplitter
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QKeySequence
-from PyQt6.QtCore import QThread, pyqtSignal
+from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QMessageBox, QSplitter
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QThread, Signal
 
 from config import settings
 from ui.widgets.sidebar_widget import SidebarWidget
@@ -27,8 +27,8 @@ logger = get_logger(__name__)
 class IndexingThread(QThread):
     """Background thread for indexing operations"""
     
-    progress_update = pyqtSignal(int, int, str)  # current, total, message
-    finished = pyqtSignal(object)  # IndexingResult
+    progress_update = Signal(int, int, str)  # current, total, message
+    finished = Signal(object)  # IndexingResult
     
     def __init__(self, indexer, directory, is_reindex=False, directories=None):
         super().__init__()
@@ -543,7 +543,7 @@ class MainWindow(QMainWindow):
             )
 
         # Schedule status bar update to permanent state after 5 seconds
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
         QTimer.singleShot(5000, self._update_status_bar)
 
         # Update stats (for sidebar)
@@ -591,7 +591,7 @@ class MainWindow(QMainWindow):
             )
 
         # Schedule permanent status after 5 seconds
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
         QTimer.singleShot(5000, self._update_status_bar)
 
         # Update stats (for sidebar)

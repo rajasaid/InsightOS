@@ -4,9 +4,9 @@ Logo utilities for InsightOS
 """
 
 from pathlib import Path
-from PyQt6.QtWidgets import QLabel
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
+from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt
 
 # Logo file paths
 RESOURCES_DIR = Path(__file__).parent

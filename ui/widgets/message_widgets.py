@@ -3,12 +3,12 @@ ui/widgets/message_widgets.py
 Message bubble widgets for user and assistant messages
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QFrame, QPushButton, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 
 from ui.widgets.citation_widget import CitationWidget
 from utils.logger import get_logger

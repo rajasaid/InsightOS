@@ -3,7 +3,7 @@ ui/styles/fonts.py
 macOS-native font definitions for InsightOS
 """
 
-from PyQt6.QtGui import QFont
+from PySide6.QtGui import QFont
 
 # ============================================================================
 # Font Family Constants
@@ -217,7 +217,7 @@ def load_custom_font(font_path: str) -> int:
     Returns:
         Font ID (or -1 if failed)
     """
-    from PyQt6.QtGui import QFontDatabase
+    from PySide6.QtGui import QFontDatabase
     font_id = QFontDatabase.addApplicationFont(font_path)
     if font_id == -1:
         print(f"Failed to load font: {font_path}")
@@ -226,7 +226,7 @@ def load_custom_font(font_path: str) -> int:
 
 def list_available_fonts():
     """Print list of available fonts (useful for debugging)"""
-    from PyQt6.QtGui import QFontDatabase
+    from PySide6.QtGui import QFontDatabase
     fonts = QFontDatabase.families()
     print("Available fonts:")
     for font in sorted(fonts):

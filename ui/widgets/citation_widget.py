@@ -3,13 +3,13 @@ ui/widgets/citation_widget.py
 Expandable citation widget showing document sources
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFrame, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QRect
-from PyQt6.QtGui import QFont, QCursor, QDesktopServices
-from PyQt6.QtCore import QUrl
+from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, QRect
+from PySide6.QtGui import QFont, QCursor, QDesktopServices
+from PySide6.QtCore import QUrl
 from pathlib import Path
 
 from utils.logger import get_logger
@@ -21,7 +21,7 @@ class CitationWidget(QWidget):
     """Expandable widget displaying source citations"""
     
     # Signals
-    citation_clicked = pyqtSignal(str)  # Emitted when citation is clicked with filepath
+    citation_clicked = Signal(str)  # Emitted when citation is clicked with filepath
     
     def __init__(self, citations: list, parent=None):
         super().__init__(parent)

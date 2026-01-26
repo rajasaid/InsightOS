@@ -3,15 +3,15 @@ ui/dialogs/settings_dialog.py
 Settings dialog with tabbed interface for configuration
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
     QWidget, QLabel, QLineEdit, QPushButton, QSlider,
     QCheckBox, QGroupBox, QSpinBox, QMessageBox,
     QFormLayout, QScrollArea, QFrame, QTextEdit, QFileDialog, 
     QProxyStyle, QStyleOptionTab
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QFont
 
 from ui.styles.colors import (
     BACKGROUND, TEXT_PRIMARY, TEXT_SECONDARY,
@@ -34,8 +34,8 @@ class SettingsDialog(QDialog):
     """Settings dialog with multiple tabs for configuration"""
     
     # Signals
-    settings_changed = pyqtSignal(dict)  # Emitted when settings are saved
-    api_key_changed = pyqtSignal(str)    # Emitted when API key is changed
+    settings_changed = Signal(dict)  # Emitted when settings are saved
+    api_key_changed = Signal(str)    # Emitted when API key is changed
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -219,8 +219,8 @@ class SettingsDialog(QDialog):
         """Restart the application"""
         import sys
         import os
-        from PyQt6.QtWidgets import QApplication
-        from PyQt6.QtCore import QProcess
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtCore import QProcess
         
         # Close settings dialog
         self.accept()
@@ -417,7 +417,7 @@ class GeneralTab(QWidget):
         layout.addWidget(help_label)
         
         # Checkboxes in grid
-        from PyQt6.QtWidgets import QGridLayout
+        from PySide6.QtWidgets import QGridLayout
         grid = QGridLayout()
         grid.setSpacing(8)
         
@@ -528,7 +528,7 @@ class GeneralTab(QWidget):
 class APIKeyTab(QWidget):
     """API key configuration tab"""
     
-    api_key_validated = pyqtSignal(str)
+    api_key_validated = Signal(str)
     
     def __init__(self, parent=None):
         super().__init__(parent)
