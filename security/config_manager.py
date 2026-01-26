@@ -18,9 +18,9 @@ logger = get_logger(__name__)
 
 # Default configuration
 DEFAULT_CONFIG = {
-    'top_k': 5,
-    'chunk_size': 1000,
-    'chunk_overlap': 200,
+    'top_k': 8,
+    'chunk_size': 350,
+    'chunk_overlap': 80,
     'monitored_directories': [],
     'file_types_enabled': [
         '.txt', '.md', '.pdf', '.docx', '.py', '.java', '.js',

@@ -14,6 +14,7 @@ from PySide6.QtGui import QFont, QPixmap
 
 from pathlib import Path
 
+from security.config_manager import get_config_manager
 from ui.styles.colors import (
     BACKGROUND, TEXT_PRIMARY, TEXT_SECONDARY,
     ACCENT_COLOR, ERROR_COLOR, SUCCESS_COLOR
@@ -340,7 +341,9 @@ class APIKeyPage(QWizardPage):
         
         # Simulate validation (in real implementation, call actual API)
         # TODO: Integrate with KeyManager to actually validate
-        QTimer.singleShot(1500, lambda: self._validation_result(True, api_key))
+        config_manager = get_config_manager()
+        is_valid_key = config_manager.validate_api_key(api_key)
+        QTimer.singleShot(1500, lambda: self._validation_result(is_valid_key, api_key))
     
     def _validation_result(self, success: bool, api_key: str):
         """Handle validation result"""

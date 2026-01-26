@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         self.indexer = indexer if indexer else Indexer()
         
         # Initialize RAG retriever
-        top_k = config.get('top_k', 5)
+        top_k = config.get('top_k', 8)
         self.rag_retriever = RAGRetriever(top_k=top_k)
         logger.info(f"RAG retriever initialized (top_k={top_k})")
         

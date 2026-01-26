@@ -229,7 +229,7 @@ class ChromaDBClient:
     def query(
         self,
         query_text: str,
-        top_k: int = 5,
+        top_k: int = 8,
         where: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -273,7 +273,7 @@ class ChromaDBClient:
     def query_with_threshold(
         self,
         query_text: str,
-        top_k: int = 5,
+        top_k: int = 8,
         distance_threshold: float = 1.5,
         where: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
