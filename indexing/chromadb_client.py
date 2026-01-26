@@ -11,7 +11,7 @@ import chromadb
 from chromadb.config import Settings
 
 from utils.logger import get_logger
-from config.settings import CHROMA_DIR, CHROMA_COLLECTION_NAME
+from config.settings import CHROMA_DIR, CHROMA_COLLECTION_NAME, DEFAULT_TOP_K
 
 logger = get_logger(__name__)
 
@@ -229,7 +229,7 @@ class ChromaDBClient:
     def query(
         self,
         query_text: str,
-        top_k: int = 8,
+        top_k: int = DEFAULT_TOP_K,
         where: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
