@@ -6,6 +6,7 @@ Executes tools (built-in and MCP) requested by Claude
 from typing import List, Dict, Any, Optional, Callable
 import json
 
+from config.settings import DEFAULT_TOP_K
 from indexing.chromadb_client import ChromaDBClient
 from utils.logger import get_logger
 from utils.file_utils import read_text_file, list_files_in_directory
@@ -213,7 +214,7 @@ class ToolExecutor:
     def _search_documents(
         self,
         query: str,
-        top_k: int = 5,
+        top_k: int = DEFAULT_TOP_K,
         file_type_filter: Optional[str] = None
     ) -> Dict[str, Any]:
         """

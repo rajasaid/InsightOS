@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 
+from config.settings import DEFAULT_TOP_K, get_settings_dict
 from ui.styles.colors import (
     BACKGROUND, TEXT_PRIMARY, TEXT_SECONDARY,
     ACCENT_COLOR, SUCCESS_COLOR, ERROR_COLOR,
@@ -371,6 +372,8 @@ class GeneralTab(QWidget):
     
     def _create_rag_settings(self):
         """Create RAG settings group"""
+        default_top_k = get_settings_dict().get("rag", {}).get("default_top_k", 8)  
+
         group = QGroupBox("Search Settings")
         group.setFont(get_text_font(SIZE_BODY, WEIGHT_BOLD))
         layout = QFormLayout(group)
@@ -382,13 +385,13 @@ class GeneralTab(QWidget):
         self.topk_slider = QSlider(Qt.Orientation.Horizontal)
         self.topk_slider.setMinimum(1)
         self.topk_slider.setMaximum(20)
-        self.topk_slider.setValue(5)
+        self.topk_slider.setValue(default_top_k)
         self.topk_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.topk_slider.setTickInterval(1)
         self.topk_slider.valueChanged.connect(self._update_topk_label)
         topk_layout.addWidget(self.topk_slider, stretch=1)
         
-        self.topk_value_label = QLabel("5")
+        self.topk_value_label = QLabel("8")
         self.topk_value_label.setMinimumWidth(30)
         self.topk_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.topk_value_label.setStyleSheet(f"font-weight: bold; color: {ACCENT_COLOR};")
@@ -492,7 +495,7 @@ class GeneralTab(QWidget):
     def load_settings(self, config: dict):
         """Load settings from config"""
         # Top-K
-        top_k = config.get('top_k', 5)
+        top_k = config.get('top_k', DEFAULT_TOP_K)
         self.topk_slider.setValue(top_k)
         
         # File types
@@ -661,8 +664,10 @@ class APIKeyTab(QWidget):
         self.api_key_input.setEnabled(False)
         
         # Simulate validation (TODO: integrate with KeyManager)
-        QTimer.singleShot(1500, lambda: self._validation_result(True, api_key))
-    
+        config_manager = get_config_manager()
+        is_valid_key = config_manager.validate_api_key(api_key)
+        QTimer.singleShot(1500, lambda: self._validation_result(is_valid_key, api_key))
+
     def _validation_result(self, success: bool, api_key: str):
         """Handle validation result"""
         self.validate_btn.setEnabled(True)
@@ -1173,13 +1178,53 @@ class AdvancedTab(QWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # TODO: Implement cache clearing
-            logger.info("Vector database cleared from settings")
-            QMessageBox.information(
-                self,
-                "Cache Cleared",
-                "Vector database has been cleared. Please re-index your directories."
-            )
+            try:
+                # Navigate up the widget tree to find MainWindow
+                # AdvancedTab -> QStackedWidget -> QTabWidget -> SettingsDialog -> MainWindow
+                widget = self.parent()  # QStackedWidget
+                
+                # Keep going up until we find the actual SettingsDialog
+                while widget is not None:
+                    # Check if this widget has a parent that looks like MainWindow
+                    # (has 'indexer' attribute)
+                    parent = widget.parent()
+                    if parent and hasattr(parent, 'indexer'):
+                        main_window = parent
+                        break
+                    widget = parent
+                else:
+                    raise Exception("Could not find MainWindow with indexer")
+                
+                logger.info("Found MainWindow, clearing vector database...")
+                
+                # Clear the vector database
+                main_window.indexer.chromadb_client.clear_collection()
+                
+                # Update sidebar stats to show 0 files
+                if hasattr(main_window, 'sidebar'):
+                    main_window.sidebar.update_file_count(0)
+                    main_window.sidebar.update_last_indexed("Never")
+                
+                # Update status bar
+                if hasattr(main_window, '_update_status_bar'):
+                    main_window._update_status_bar()
+                
+                logger.info("Vector database cleared successfully")
+                
+                QMessageBox.information(
+                    self,
+                    "Database Cleared",
+                    "Vector database has been cleared successfully.\n\n"
+                    "Please re-index your directories to use search again."
+                )
+            
+            except Exception as e:
+                logger.error(f"Error clearing vector database: {e}", exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Failed to clear vector database:\n{str(e)}"
+                )
 
     def load_settings(self, config: dict):
         """Load settings from config"""

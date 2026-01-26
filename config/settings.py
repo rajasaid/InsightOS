@@ -62,7 +62,7 @@ API_RATE_LIMIT_INFO = {
 # ============================================================================
 
 # Retrieval settings
-DEFAULT_TOP_K = 5
+DEFAULT_TOP_K = 8
 MIN_TOP_K = 1
 MAX_TOP_K = 20
 
@@ -79,8 +79,8 @@ DEFAULT_SIMILARITY_THRESHOLD = 0.3
 # ============================================================================
 
 # Chunking settings
-DEFAULT_CHUNK_SIZE = 300  # characters
-MIN_CHUNK_SIZE = 50
+DEFAULT_CHUNK_SIZE = 350  # characters
+MIN_CHUNK_SIZE = 100
 MAX_CHUNK_SIZE = 4000
 
 DEFAULT_CHUNK_OVERLAP = 70  # characters
