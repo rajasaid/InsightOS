@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         
         # Generated files browser (right)
         self.generated_files_browser = GeneratedFilesBrowser()
-        self.generated_files_browser.setMaximumWidth(350)
+        self.generated_files_browser.setMaximumWidth(400)
         splitter.addWidget(self.generated_files_browser)
         
         # Set initial splitter sizes (70% chat, 30% files)
@@ -728,7 +728,7 @@ class MainWindow(QMainWindow):
             f"<h2>{APP_NAME}</h2>"
             f"<p>Version {APP_VERSION}</p>"
             f"<p>{APP_DESCRIPTION}</p>"
-            f"<p>Built with PyQt6, Claude AI, and MCP</p>"
+            f"<p>Built with PySide6, Claude AI, and MCP</p>"
             f"<p>Features: RAG, Agentic Mode, File Generation</p>"
         )
     

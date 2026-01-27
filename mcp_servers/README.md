@@ -188,7 +188,7 @@ Generated/
 ```python
 from mcp_servers.config import get_mcp_config
 
-# In your PyQt6 application
+# In your PySide6 application
 config = get_mcp_config()
 
 # Show user the output directory in settings

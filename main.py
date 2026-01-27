@@ -88,7 +88,7 @@ def check_prerequisites():
     try:
         from PySide6 import QtWidgets
     except ImportError:
-        return False, "PyQt6 not installed. Run: pip install PyQt6"
+        return False, "PySide6 not installed. Run: pip install PySide6"
     
     return True, None
 
