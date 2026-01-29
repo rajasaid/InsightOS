@@ -5,7 +5,7 @@ Expandable citation widget showing document sources
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QFrame, QSizePolicy
+    QPushButton, QFrame, QSizePolicy, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, QRect
 from PySide6.QtGui import QFont, QCursor, QDesktopServices
@@ -312,7 +312,12 @@ class CitationWidget(QWidget):
                 self.citation_clicked.emit(filepath)
             else:
                 logger.warning(f"File not found: {filepath}")
-                # TODO: Show error message to user
+                # Show File not found message
+                QMessageBox.information(
+                    self,
+                    "File Not Found",
+                    "The file you are trying to open does not exist!."
+                )
         except Exception as e:
             logger.error(f"Error opening file {filepath}: {e}")
     

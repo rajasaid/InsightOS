@@ -457,6 +457,7 @@ class ChatWidget(QWidget):
     def _on_response_ready(self, response_text: str, citations: list):
         """Handle response from worker thread"""
         logger.info(f"Response received: {len(response_text)} chars, {len(citations)} citations")
+        logger.debug(f"Response citations: {citations}")
         
         # Add assistant message
         self.add_assistant_message(response_text, citations)

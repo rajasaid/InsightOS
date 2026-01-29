@@ -325,8 +325,10 @@ class RAGRetriever:
         """
         sources = set()
         for result in results:
-            filename = result.metadata.get('filename', 'Unknown')
-            sources.add(filename)
+            #filename = result.metadata.get('filename', 'Unknown')
+            filepath = result.metadata.get('filepath', 'Unknown')
+            logger.debug(f"result metadata: {result.metadata}")
+            sources.add(filepath)
         
         return sorted(list(sources))
     
