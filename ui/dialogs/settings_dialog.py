@@ -216,25 +216,80 @@ class SettingsDialog(QDialog):
         else:
             self.accept()
 
+    # def _restart_application(self):
+    #     """Restart the application"""
+    #     import sys
+    #     import os
+    #     from PySide6.QtWidgets import QApplication
+    #     from PySide6.QtCore import QProcess
+        
+    #     # Close settings dialog
+    #     self.accept()
+        
+    #     # Get the main window and close it
+    #     main_window = self.parent()
+    #     if main_window:
+    #         main_window.close()
+        
+    #     # Restart the application
+    #     QProcess.startDetached(sys.executable, sys.argv)
+    #     QApplication.quit()
+
+    def _get_main_window(self):
+        """Helper to get MainWindow instance from widget tree"""
+        widget = self  
+        
+        # Keep going up until we find the actual main window
+        while widget is not None:
+            # Check if this widget has a parent that looks like MainWindow
+            # (has 'indexer' attribute)
+            parent = widget.parent()
+            if parent and hasattr(parent, 'indexer'):
+                return parent
+            widget = parent
+        
+        raise Exception("Could not find MainWindow with indexer")
+        
     def _restart_application(self):
-        """Restart the application"""
+        """Restart the application with proper config save"""
         import sys
-        import os
         from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import QProcess
         
         # Close settings dialog
         self.accept()
         
-        # Get the main window and close it
-        main_window = self.parent()
+        try:
+            # Get the main window
+            main_window = self._get_main_window()
+            
+            # CRITICAL: Ensure config is saved
+            if main_window and hasattr(main_window, 'config_manager'):
+                # Force reload to get latest state
+                config_manager = main_window.config_manager
+                config = config_manager.reload()
+                
+                # Save again to ensure it's on disk
+                config_manager.save_config(config)
+                logger.debug(f"Config saved before restart: {config}")
+                # Verify save by reading back
+                #config_manager.reload()
+                
+                logger.info(f"Config verified before restart: {len(config.get('monitored_directories', []))} directories")
+        except Exception as e:
+            logger.error(f"Error saving config before restart: {e}")
+        
+        # Start new instance
+        QProcess.startDetached(sys.executable, sys.argv)
+        
+        # Cleanup and quit current instance
         if main_window:
+            if hasattr(main_window, '_cleanup_and_exit'):
+                main_window._cleanup_and_exit()
             main_window.close()
         
-        # Restart the application
-        QProcess.startDetached(sys.executable, sys.argv)
-        QApplication.quit()
-        
+        QApplication.instance().quit()
+
     def _save_settings(self):
         """Save settings from all tabs"""
         # Collect settings from all tabs
@@ -1166,6 +1221,21 @@ class AdvancedTab(QWidget):
         
         return group
     
+    def _get_main_window(self):
+        """Helper to get MainWindow instance from widget tree"""
+        widget = self.parent()  # QStackedWidget
+        
+        # Keep going up until we find the actual SettingsDialog
+        while widget is not None:
+            # Check if this widget has a parent that looks like MainWindow
+            # (has 'indexer' attribute)
+            parent = widget.parent()
+            if parent and hasattr(parent, 'indexer'):
+                return parent
+            widget = parent
+        
+        raise Exception("Could not find MainWindow with indexer")
+    
     def _clear_cache(self):
         """Clear cache/vector database"""
         reply = QMessageBox.warning(
@@ -1181,19 +1251,8 @@ class AdvancedTab(QWidget):
             try:
                 # Navigate up the widget tree to find MainWindow
                 # AdvancedTab -> QStackedWidget -> QTabWidget -> SettingsDialog -> MainWindow
-                widget = self.parent()  # QStackedWidget
-                
-                # Keep going up until we find the actual SettingsDialog
-                while widget is not None:
-                    # Check if this widget has a parent that looks like MainWindow
-                    # (has 'indexer' attribute)
-                    parent = widget.parent()
-                    if parent and hasattr(parent, 'indexer'):
-                        main_window = parent
-                        break
-                    widget = parent
-                else:
-                    raise Exception("Could not find MainWindow with indexer")
+            
+                main_window = self._get_main_window()
                 
                 logger.info("Found MainWindow, clearing vector database...")
                 

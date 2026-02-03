@@ -637,9 +637,30 @@ def read_text_file(filepath: Path, encoding: str = 'utf-8', errors: str = 'repla
         return None
 
 
+# def write_text_file(filepath: Path, content: str, encoding: str = 'utf-8') -> bool:
+#     """
+#     Write text file with error handling
+    
+#     Args:
+#         filepath: Path to file
+#         content: Content to write
+#         encoding: Text encoding
+    
+#     Returns:
+#         True if successful, False otherwise
+#     """
+#     try:
+#         filepath = Path(filepath)
+#         ensure_directory_exists(filepath.parent)
+#         filepath.write_text(content, encoding=encoding)
+#         logger.debug(f"Wrote text file: {filepath}")
+#         return True
+#     except Exception as e:
+#         logger.error(f"Failed to write file {filepath}: {e}")
+#         return False
 def write_text_file(filepath: Path, content: str, encoding: str = 'utf-8') -> bool:
     """
-    Write text file with error handling
+    Write text file with error handling and guaranteed disk write
     
     Args:
         filepath: Path to file
@@ -652,13 +673,18 @@ def write_text_file(filepath: Path, content: str, encoding: str = 'utf-8') -> bo
     try:
         filepath = Path(filepath)
         ensure_directory_exists(filepath.parent)
-        filepath.write_text(content, encoding=encoding)
+        
+        # Write with flush and fsync for guaranteed disk write
+        with open(filepath, 'w', encoding=encoding) as f:
+            f.write(content)
+            f.flush()  # Flush Python buffer
+            os.fsync(f.fileno())  # Force OS to write to disk
+        
         logger.debug(f"Wrote text file: {filepath}")
         return True
     except Exception as e:
         logger.error(f"Failed to write file {filepath}: {e}")
         return False
-
 
 def read_binary_file(filepath: Path) -> Optional[bytes]:
     """

@@ -30,8 +30,9 @@ class IndexingThread(QThread):
     progress_update = Signal(int, int, str)  # current, total, message
     finished = Signal(object)  # IndexingResult
     
-    def __init__(self, indexer, directory, is_reindex=False, directories=None):
+    def __init__(self, indexer, directory, is_reindex=False, directories=None, daemon=True):
         super().__init__()
+        self.daemon = daemon
         self.indexer = indexer
         self.directory = directory
         self.is_reindex = is_reindex
@@ -315,6 +316,29 @@ class MainWindow(QMainWindow):
         else:
             event.accept()
 
+    def _cleanup_and_exit(self):
+        """Clean up resources before exit"""
+        logger.info("Cleaning up before exit...")
+         
+        # # Stop MCP servers
+        # if hasattr(self, 'claude_client') and self.claude_client:
+        #     try:
+        #         from mcp_servers.client import get_mcp_client
+        #         mcp_client = get_mcp_client()
+                
+        #         # Stop all servers
+        #         mcp_client.stop_all_servers()
+                
+        #         # Force close any remaining reader threads
+        #         import time
+        #         time.sleep(0.5)
+                
+        #         logger.info("MCP servers stopped")
+        #     except Exception as e:
+        #         logger.error(f"Error stopping MCP servers: {e}")
+        
+        # logger.info("Cleanup complete")
+        
     # ========================================================================
     # Setup Wizard
     # ========================================================================
@@ -446,6 +470,9 @@ class MainWindow(QMainWindow):
         
         # Save to config
         self.config_manager.add_monitored_directory(directory)
+        logger.debug(f"Added directory to config: {directory}")
+        config = self.config_manager.reload()
+        logger.debug(f"Reloaded config: {config}")
         
         # Disable UI during indexing
         self.sidebar.add_btn.setEnabled(False)
@@ -473,7 +500,10 @@ class MainWindow(QMainWindow):
         
         # Remove from config
         self.config_manager.remove_monitored_directory(directory)
-        
+        logger.debug(f"Removed directory from config: {directory}")
+        config = self.config_manager.reload()
+        logger.debug(f"Reloaded config: {config}")
+
         # Update file count
         self._update_status_bar()
     

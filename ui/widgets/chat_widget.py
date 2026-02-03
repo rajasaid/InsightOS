@@ -25,8 +25,19 @@ class ChatWorker(QThread):
     response_ready = Signal(str, list)  # (response_text, citations)
     error_occurred = Signal(str)  # error_message
     
-    def __init__(self, agent_client, rag_retriever, message, conversation_history):
+    def __init__(self, agent_client, rag_retriever, message, conversation_history, daemon=True):
+        """
+        Initialize chat worker thread
+        
+        Args:
+            agent_client: ClaudeClient instance from agent layer
+            rag_retriever: RAGRetriever instance from core layer
+            message: Message to process
+            conversation_history: List of previous conversation messages
+            daemon: Whether to run as daemon thread (default True)
+        """
         super().__init__()
+        self.daemon = daemon
         self.agent_client = agent_client
         self.rag_retriever = rag_retriever
         self.message = message

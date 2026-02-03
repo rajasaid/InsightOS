@@ -110,7 +110,8 @@ class ConfigManager:
         try:
             # Remove api_key_encrypted from config before saving
             # (it's handled separately by KeyManager)
-            config_to_save = config.copy()
+            config_to_save = _deepcopy(config)
+            config_to_save.pop('api_key_encrypted', None)
             
             # Convert to JSON with nice formatting
             config_json = json.dumps(config_to_save, indent=2, sort_keys=True)
