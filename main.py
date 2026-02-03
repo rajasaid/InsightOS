@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from ui.main_window import MainWindow
 from ui.dialogs.setup_wizard import SetupWizard
-from security.config_manager import ConfigManager
+from security.config_manager import ConfigManager, get_config_manager
 from indexing.indexer import Indexer
 from mcp_servers import get_mcp_config
 from utils.logger import setup_logger, get_logger
@@ -158,7 +158,7 @@ def main():
     
     
     # Check if first-time setup needed
-    config_manager = ConfigManager()
+    config_manager = get_config_manager()
     
     # Create indexer (shared between wizard and main window)
     indexer = Indexer(config_manager=config_manager)

@@ -361,7 +361,64 @@ class MCPClient:
         """Stop all MCP servers"""
         for server_name in list(self.servers.keys()):
             self.stop_server(server_name)
-    
+    # # In mcp_servers/client.py
+
+    # def stop_server(self, server_name: str):
+    #     """Stop an MCP server"""
+    #     if server_name not in self.servers:
+    #         return
+        
+    #     try:
+    #         process = self.servers[server_name]
+            
+    #         logger.info(f"Stopping MCP server: {server_name}")
+            
+    #         # Close stdin to signal server to stop
+    #         try:
+    #             if process.stdin:
+    #                 process.stdin.close()
+    #         except:
+    #             pass
+            
+    #         # Terminate process
+    #         process.terminate()
+            
+    #         # Wait for termination (short timeout)
+    #         try:
+    #             process.wait(timeout=1)
+    #             logger.info(f"✓ MCP server {server_name} terminated gracefully")
+    #         except:
+    #             # Force kill if didn't terminate
+    #             logger.warning(f"Force killing MCP server: {server_name}")
+    #             process.kill()
+    #             try:
+    #                 process.wait(timeout=1)
+    #             except:
+    #                 pass
+            
+    #         # Remove from dict
+    #         del self.servers[server_name]
+            
+    #         logger.info(f"Stopped MCP server: {server_name}")
+        
+    #     except Exception as e:
+    #         logger.error(f"Error stopping {server_name}: {e}")
+
+    # def stop_all_servers(self):
+    #     """Stop all MCP servers"""
+    #     logger.info("Stopping all MCP servers...")
+        
+    #     server_names = list(self.servers.keys())
+        
+    #     for server_name in server_names:
+    #         self.stop_server(server_name)
+        
+    #     # Give threads time to finish
+    #     import time
+    #     time.sleep(0.5)
+        
+    #     logger.info("All MCP servers stopped")
+        
     def __del__(self):
         """Cleanup on deletion"""
         self.stop_all_servers()
